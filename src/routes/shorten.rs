@@ -22,6 +22,6 @@ pub async fn shorten(
         .execute(&state.db)
         .await;
 
-    let short_url = format!("http://localhost:3000/r/{}", code);
+    let short_url = format!("http://141.147.118.153:3001/r/{}", code);
     (StatusCode::OK, Json(ShortenResponse { short_url }))
 }

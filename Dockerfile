@@ -23,6 +23,6 @@ RUN apt-get update && apt-get install -y libsqlite3-0 ca-certificates && rm -rf 
 
 COPY --from=builder /app/target/release/supershort /app/app
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["./app"]
