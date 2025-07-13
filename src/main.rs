@@ -14,6 +14,8 @@ use crate::routes::redirect::redirect;
 use crate::routes::shorten::shorten;
 use crate::structs::AppState;
 
+use tower_http::cors::{CorsLayer, Any};
+use http::Method;
 
 
 #[tokio::main]
@@ -39,9 +41,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/shorten", post(shorten))
         .route("/r/{code}", get(redirect))
-        .with_state(AppState { db: pool });
+        .with_state(AppState { db: pool })
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods([Method::GET, Method::POST])
+        );
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     println!("🚀 Running at http://{}", addr);
 
     axum_server::bind(addr)
