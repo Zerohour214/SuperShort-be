@@ -1,39 +1,20 @@
+mod routes;
+mod structs;
+
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Redirect},
     routing::{get, post},
-    Json, Router,
+    Router,
 };
 
 use dotenvy::dotenv;
-use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePoolOptions, FromRow, SqlitePool};
+use sqlx::{sqlite::SqlitePoolOptions};
 use std::{env, net::SocketAddr};
-use uuid::Uuid;
+
+use crate::routes::redirect::redirect;
+use crate::routes::shorten::shorten;
+use crate::structs::AppState;
 
 
-
-#[derive(Clone)]
-struct AppState {
-    db: SqlitePool,
-}
-
-#[derive(Deserialize)]
-struct ShortenRequest {
-    url: String,
-}
-
-#[derive(Serialize)]
-struct ShortenResponse {
-    short_url: String,
-}
-
-#[derive(FromRow)]
-struct Link {
-    code: String,
-    url: String,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,35 +50,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     Ok(())
-}
-
-async fn shorten(
-    State(state): State<AppState>,
-    Json(payload): Json<ShortenRequest>,
-) -> impl IntoResponse {
-    let code = Uuid::new_v4().to_string()[..6].to_string();
-
-    let _ = sqlx::query("INSERT INTO links (code, url) VALUES (?, ?)")
-        .bind(&code)
-        .bind(&payload.url)
-        .execute(&state.db)
-        .await;
-
-    let short_url = format!("http://localhost:3000/r/{}", code);
-    (StatusCode::OK, Json(ShortenResponse { short_url }))
-}
-
-async fn redirect(
-    State(state): State<AppState>,
-    Path(code): Path<String>,
-) -> impl IntoResponse {
-    let result = sqlx::query_as::<_, Link>("SELECT code, url FROM links WHERE code = ?")
-        .bind(code)
-        .fetch_optional(&state.db)
-        .await;
-
-    match result {
-        Ok(Some(link)) => Redirect::temporary(&link.url).into_response(),
-        _ => (StatusCode::NOT_FOUND, "Link not found").into_response(),
-    }
 }
